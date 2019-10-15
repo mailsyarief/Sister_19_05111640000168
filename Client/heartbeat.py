@@ -30,7 +30,7 @@ class Heartbeat(object):
     def __connect_heartbeat_server(self, id):
         time.sleep(self.ping_interval())
         try:
-            uri = "PYRONAME:maile-{}@localhost:7777".format(id)
+            uri = "PYRONAME:heartbeat-{}@localhost:7777".format(id)
             server = Pyro4.Proxy(uri)
         except:
             return None
@@ -75,4 +75,11 @@ class Heartbeat(object):
         self.connected_device_summary.update(new_summary)
         self.counter = self.counter + 1
         self.last_received = time.time()
-        return '> message from {} : {}'.format(id, new_summary.get(id))
+        return '> [all to all] message from {} : {}'.format(id, new_summary.get(id))
+
+    @Pyro4.expose
+    def get_summary_heartbeat(self, id):
+        summary = self.connected_device_summary.get(id)
+        if type(summary) is dict:
+            return '{},{},{}'.format(id, summary.get('counter'), summary.get('last_received'))
+        return '{},{},{}'.format(id, 'none', 'none')

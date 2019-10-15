@@ -11,30 +11,41 @@ id = None
 interval = 0
 server = None
 connected = True
+connected_device = []
 
 def client_create(filename,value):
+    res = server.create(filename,value)
+    res.wait(2)
     print '\n'
-    print(server.create(filename,value))
+    print(res.value)
     print '\n'
 
 def client_read(filename):
+    res = server.read(filename)
+    res.wait(2)
     print '\n'
-    print(server.read(filename))
+    print(res.value)
     print '\n'
 
 def client_update(filename,value):
+    res = server.update(filename,value)
+    res.wait(2)
     print '\n'
-    print(server.update(filename,value))
+    print(res.value)
     print '\n'
 
 def client_delete(filename):
+    res = server.delete(filename)
+    res.wait(2)
     print '\n'
-    print(server.delete(filename))
+    print(res.value)
     print '\n'
 
 def client_show():
+    res = server.show();
+    res.wait(2)
     print '\n'
-    print '\n'.join(server.show())
+    print '\n'.join(res.value)
     print '\n'
 
 def client_send(filename):
@@ -50,7 +61,7 @@ def client_send(filename):
     else:
         print "File Tidak Ada :("
 
-
+# ===============================
 def get_server(id):
     try:
         uri = "PYRONAME:{}@localhost:7777".format(id)
@@ -77,24 +88,31 @@ def job_heartbeat_failure(heartbeat):
         time.sleep(interval)
     gracefully_exits()
 
+def job_heartbeat_failure_all_to_all(id):
+    server_heartbeat = get_server('heartbeat-{}'.format(id))
+    while True:
+        try:
+            summary = server_heartbeat.get_summary_heartbeat(id)
+            summary = summary.split(',')
+            if summary[1] == 'none':
+                pass
+            else:
+                if time.time() - float(summary[2]) > 2*interval:
+                    print("\n{} is down [DETECT BY all heartbeat]\n> ".format(id))
+                    # break
+            time.sleep(interval)
+        except:
+            # print("\n{} is down [DETECT BY all heartbeat]\n> ".format(id))
+            break
+
 def expose_function_heartbeat(heartbeat, id):
     __host = "localhost"
     __port = 7777
     daemon = Pyro4.Daemon(host = __host)
     ns = Pyro4.locateNS(__host, __port)
     uri_server = daemon.register(heartbeat)
-    ns.register("maile-{}".format(id), uri_server)
+    ns.register("heartbeat-{}".format(id), uri_server)
     daemon.requestLoop()
-
-
-def job_heartbeat_failure(heartbeat):
-    while True:
-        if time.time() - heartbeat.last_received > 2*interval:
-            print("\nserver is down [DETECT BY heartbeat]")
-            break
-        time.sleep(interval)
-    gracefully_exits()
-
 
 def communicate():
     try:
@@ -117,8 +135,29 @@ def ping_server():
         time.sleep(interval)
     gracefully_exits()
 
+def get_connected_device_from_server():
+    try:
+        conn_device = server.connected_device_ls()
+        conn_device.ready
+        conn_device.wait(1)
+        conn_device = clear_connected_device(conn_device.value.split(','), id)
+    except:
+        return None
+    return conn_device
+
 def job_ping_server_ping_ack():
     t = threading.Thread(target=ping_server)
+    t.start()
+    return t
+
+def register_new_clients(heartbeat):
+    while True:
+        conn_device = get_connected_device_from_server()
+        all_to_al_heartbeat_job(heartbeat, conn_device)
+        time.sleep(interval)
+
+def job_check_updated_device_from_server(heartbeat):
+    t = threading.Thread(target=register_new_clients, args=(heartbeat,))
     t.start()
     return t
 
@@ -139,15 +178,17 @@ def clear_connected_device(devices, id):
 
 def all_to_al_heartbeat_job(heartbeat, devices):
     for device in devices:
-        heartbeat.new_thread_job(device)
+        if device not in connected_device:
+            connected_device.append(device)
+            heartbeat.new_thread_job(device)
+
+            t1 = threading.Thread(target=job_heartbeat_failure_all_to_all, args=(device,))
+            t1.start()
 
 if __name__=='__main__':
 
-    # device id
-    id = str(uuid.uuid4())
-    print('---------- registered id : {}'.format(id))
     # core
-    server = get_server('maile')
+    server = get_server('server')
     try:
         interval = server.ping_interval()
     except:
@@ -156,6 +197,9 @@ if __name__=='__main__':
     server._pyroTimeout = interval
     server._pyroAsync()
 
+    # device id
+    id = str(uuid.uuid4())
+    print('---------- registered id : {}'.format(id))
 
     # register device on server (heartbeat)
     server.connected_device_add(id)
@@ -166,13 +210,11 @@ if __name__=='__main__':
     # register failure detector on server
     server.new_thread_job(id)
 
-    conn_device = server.connected_device_ls()
-    conn_device.ready
-    conn_device.wait(1)
-    conn_device = clear_connected_device(conn_device.value.split(','), id)
+    conn_device = get_connected_device_from_server()
 
     all_to_al_heartbeat_job(heartbeat, conn_device)
 
+    thread_get_connected_device_list = job_check_updated_device_from_server(heartbeat)
 
     file = ""
     while True:
