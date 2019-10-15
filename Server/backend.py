@@ -53,11 +53,11 @@ class Backend(object):
 
     @Pyro4.expose
     def ping_interval(self):
-        return 3
+        return 1000
 
     @Pyro4.expose
     def max_retries(self):
-        return 2
+        return 100
 
     @Pyro4.expose
     def new_thread_job(self, id):
@@ -69,7 +69,7 @@ class Backend(object):
     def __connect_heartbeat_server(self, id):
         time.sleep(self.ping_interval())
         try:
-            uri = "PYRONAME:maile-{}@localhost:7777".format(id)
+            uri = "PYRONAME:server-{}@localhost:7777".format(id)
             server = Pyro4.Proxy(uri)
         except:
             return None
@@ -145,6 +145,10 @@ class Backend(object):
 
         return files
 
+    @Pyro4.expose
+    def down_my_server(self):
+        time.sleep(self.ping_interval() + 1)
+        return self.ok()
 
 
 if __name__ == '__main__':
