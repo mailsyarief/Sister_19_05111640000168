@@ -53,7 +53,7 @@ class Backend(object):
 
     @Pyro4.expose
     def ping_interval(self):
-        return 1000
+        return 3
 
     @Pyro4.expose
     def max_retries(self):
@@ -69,7 +69,7 @@ class Backend(object):
     def __connect_heartbeat_server(self, id):
         time.sleep(self.ping_interval())
         try:
-            uri = "PYRONAME:server-{}@localhost:7777".format(id)
+            uri = "PYRONAME:heartbeat-{}@localhost:7777".format(id)
             server = Pyro4.Proxy(uri)
         except:
             return None

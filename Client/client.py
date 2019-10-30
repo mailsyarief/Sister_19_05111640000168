@@ -11,6 +11,7 @@ id = None
 interval = 0
 server = None
 connected = True
+connected = True
 connected_device = []
 
 def client_create(filename,value):
@@ -130,7 +131,7 @@ def ping_server():
         if not alive:
             alive = communicate()
             if not alive:
-                print("\nserver is down [DETECT BY ping ack]")
+                print("\nSERVER DOWN ( DETECT BY PING ACK )")
                 break
         time.sleep(interval)
     gracefully_exits()
@@ -200,7 +201,7 @@ if __name__=='__main__':
     # device id
     id = str(uuid.uuid4())
     print('---------- registered id : {}'.format(id))
-
+    #COMMENT DARI SINI
     # register device on server (heartbeat)
     server.connected_device_add(id)
 
@@ -215,7 +216,7 @@ if __name__=='__main__':
     all_to_al_heartbeat_job(heartbeat, conn_device)
 
     thread_get_connected_device_list = job_check_updated_device_from_server(heartbeat)
-
+    # COMMENT SAMPE SINI
     file = ""
     while True:
         print("1. Create | 2. Read | 3. Update | 4. Delete | 5. Show | 6. Send | 0. Exit")
