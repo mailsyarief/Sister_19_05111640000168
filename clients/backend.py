@@ -73,13 +73,13 @@ class Backend(object):
         for x in range(0, len(self.pyro)):
             self.pyro[x].delete(name)
 
-            path = os.getcwd()
-            filename = os.path.join(path, name)
-            if (os.path.exists(filename)):
-                os.remove(filename)
-                return ("Delete Berhasil :)")
-            else:
-                return "File Tidak Ada :("
+        path = os.getcwd()
+        filename = os.path.join(path, name)
+        if (os.path.exists(filename)):
+            os.remove(filename)
+            return "Delete Berhasil :)"
+        else:
+            return "File Tidak Ada :("
 
 if __name__ == '__main__':
     k = Backend()
