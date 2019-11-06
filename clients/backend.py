@@ -13,73 +13,80 @@ class Backend(object):
             self.pyro[i] = Pyro4.Proxy(uri)
             i+=1
 
-    def create_return_message(self,kode='000',message='kosong',data=None):
-        return dict(kode=kode,message=message,data=data)
+    # def create_return_message(self,kode='000',message='kosong',data=None):
+    #     return dict(kode=kode,message=message,data=data)
 
     def list(self):
-        print("list ops")
-        try:
-            daftarfile = []
-            for x in os.listdir():
-                if x[0:4]=='FFF-':
-                    daftarfile.append(x[4:])
-            return self.create_return_message('200',daftarfile)
-        except:
-            return self.create_return_message('500','Error')
+        files = []
+        path = os.getcwd()
+        print path
+        # r=root, d=directories, f = files
+        for r, d, f in os.walk(path):
+            for file in f:
+                if '.txt' in file:
+                    files.append(file)
 
-    def create(self, name='filename000'):
+        return files
+
+    def create(self, name='filename000',isi=None):
         for x in range(0, len(self.pyro)):
-            self.pyro[x].create(name)
+            self.pyro[x].create(name, isi)
 
-        nama='FFF-{}' . format(name)
-        print("create ops {}" . format(nama))
-        try:
-            if os.path.exists(name):
-                return self.create_return_message('102', 'OK','File Exists')
-            f = open(nama,'wb',buffering=0)
-            f.close()
-            return self.create_return_message('100','OK')
-        except:
-            return self.create_return_message('500','Error')
+        path = os.getcwd()
+        name = name
+        filename = os.path.join(path, name)
+        f = open(filename, "w+")
+        f.write(isi)
+        f.close()
+        return "[ Nama : {}, Isi : {} ]".format(name,isi)
+
     def read(self,name='filename000'):
-        nama='FFF-{}' . format(name)
-        print("read ops {}" . format(nama))
-        try:
-            f = open(nama,'r+b')
-            contents = f.read().decode()
-            f.close()
-            return self.create_return_message('101','OK',contents)
-        except:
-            return self.create_return_message('500','Error')
+        path = os.getcwd()
+        filename = os.path.join(path, name)
+        if(os.path.exists(filename)):
+            fd = os.open(filename, os.O_RDWR)
+            ret = os.read(fd,16*1024)
+            print ret
+            os.close(fd)
+            return ret
+        else:
+            return "File Tidak Ada :("
+
+
     def update(self,name='filename000',content=''):
         for x in range(0, len(self.pyro)):
             self.pyro[x].update(name, content)
 
-        nama='FFF-{}' . format(name)
-        print("update ops {}" . format(nama))
-
-        if (str(type(content))=="<class 'dict'>"):
-            content = content['data']
-        try:
-            f = open(nama,'w+b')
-            f.write(content.encode())
+        path = os.getcwd()
+        name = name
+        filename = os.path.join(path, name)
+        if(os.path.exists(filename)):
+            f = open(filename, "w+")
+            f.write(content)
             f.close()
-            return self.create_return_message('101','OK')
-        except Exception as e:
-            return self.create_return_message('500','Error',str(e))
+            return "[ Nama : {}, Isi : {} ]".format(name,content)
+        else:
+            return "File Tidak Ada :("
+
 
     def delete(self,name='filename000'):
+
+        flag = 0
+
         for x in range(0, len(self.pyro)):
+            flag += 1
             self.pyro[x].delete(name)
 
-        nama='FFF-{}' . format(name)
-        print("delete ops {}" . format(nama))
-
-        try:
-            os.remove(nama)
-            return self.create_return_message('101','OK')
-        except:
-            return self.create_return_message('500','Error')
+        if(flag == len(self.pyro)):
+            path = os.getcwd()
+            filename = os.path.join(path, name)
+            if(os.path.exists(filename)):
+                os.remove(filename)
+                return("Delete Berhasil :)")
+            else:
+                print "File Tidak Ada :("
+        else:
+            return "Error"
 
 if __name__ == '__main__':
-    k = FileServer()
+    k = Backend()
