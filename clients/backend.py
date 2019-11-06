@@ -1,9 +1,17 @@
 import os
-import base64
+import Pyro4
 
 class Backend(object):
     def __init__(self):
-        pass
+        self.pyro_server = ["fileserver0","fileserver1","fileserver2"]
+        self.pyro = dict()
+
+    def pyro_connect(self):
+        i = 0
+        for list in self.pyro_server:
+            uri = "PYRONAME:{}@localhost:7777" . format(list)
+            self.pyro[i] = Pyro4.Proxy(uri)
+            i+=1
 
     def create_return_message(self,kode='000',message='kosong',data=None):
         return dict(kode=kode,message=message,data=data)
@@ -20,6 +28,9 @@ class Backend(object):
             return self.create_return_message('500','Error')
 
     def create(self, name='filename000'):
+        for x in range(0, len(self.pyro)):
+            self.pyro[x].create(name)
+
         nama='FFF-{}' . format(name)
         print("create ops {}" . format(nama))
         try:
@@ -41,6 +52,9 @@ class Backend(object):
         except:
             return self.create_return_message('500','Error')
     def update(self,name='filename000',content=''):
+        for x in range(0, len(self.pyro)):
+            self.pyro[x].update(name, content)
+
         nama='FFF-{}' . format(name)
         print("update ops {}" . format(nama))
 
@@ -55,6 +69,9 @@ class Backend(object):
             return self.create_return_message('500','Error',str(e))
 
     def delete(self,name='filename000'):
+        for x in range(0, len(self.pyro)):
+            self.pyro[x].delete(name)
+
         nama='FFF-{}' . format(name)
         print("delete ops {}" . format(nama))
 
@@ -64,16 +81,5 @@ class Backend(object):
         except:
             return self.create_return_message('500','Error')
 
-
-
 if __name__ == '__main__':
-    k = Backend()
-    print(k.create('f1'))
-    print(k.update('f1',content='wedusku'))
-    print(k.read('f1'))
-#    print(k.create('f2'))
-#    print(k.update('f2',content='wedusmu'))
-#    print(k.read('f2'))
-    print(k.list())
-    #print(k.delete('f1'))
-
+    k = FileServer()
